@@ -1,71 +1,71 @@
 const fs = require('fs')
 
-// module.exports = {
-    async function setCache(cacheParams){
+const cacheJsonPath = `${__dirname}\\cache.json`
 
-         const prevCache = fs.readFileSync('cache.json', 'utf-8', (err, data) => {  // na real tem que ler de um array, mas dps faço isso
+
+module.exports = {
+    setCache(cacheParams){
+
+         const prevCache = JSON.parse(fs.readFileSync(`${cacheJsonPath}`, 'utf-8', (err, data) => {  // na real tem que ler de um array, mas dps faço isso
             if (err) 
                 throw err;
             
-
             return JSON.parse(data.toString());
-        });
+        }));
 
-        let newCache = JSON.parse(prevCache)
+        let newCache = prevCache
 
         let hasUser = false
 
         newCache.forEach(element => {
-            console.log(element)
-            if(element.user === cacheParams.user)
+            if(element.userid === cacheParams.userid)
             hasUser = true
-        });
+        })
 
 
         hasUser ? newCache.forEach(element => {
 
-            if(element.user === cacheParams.user){
-                element.user = cacheParams.user
-                element.level = cacheParams.level
-                element.from = cacheParams.from
-                element.to = cacheParams.to
+            if(element.userid === cacheParams.userid){
+                element.userid = cacheParams.userid
+                element.level = cacheParams.level ? cacheParams.level : element.level
+                element.to = cacheParams.to ? cacheParams.to : element.to
+                element.text = cacheParams.text ? cacheParams.text : element.text
+                element.anonymous = cacheParams.anonymous ? cacheParams.anonymous : element.anonymous
+                element.lastMessage = cacheParams.lastMessage ? cacheParams.lastMessage : element.lastMessage
                 // se tiver mais paremetros add depois
             }
 
         }) : newCache.push(cacheParams)
 
 
-        fs.writeFileSync('cache.json', JSON.stringify(newCache), (err) => {
+        fs.writeFileSync(`${cacheJsonPath}`, JSON.stringify(newCache), (err) => {
             if (err) 
                 throw err;
             
-        });
+        })
 
-    }
-    function getCache(user){
-        const cache = JSON.parse(fs.readFileSync('cache.json', 'utf-8', (err, data) => {  // na real tem que ler de um array, mas dps faço isso
+    },
+    getCache(user){
+        const cache = JSON.parse(fs.readFileSync(`${cacheJsonPath}`, 'utf-8', (err, data) => {  // na real tem que ler de um array, mas dps faço isso
             if (err) 
                 throw err;
-            
 
             return JSON.parse(data.toString());
         }))
 
         let userCache = false
         cache.forEach(element => {
-            if(element.user == user){ //tirei o toString, se pa n da nada mas n testei
+            if(element.userid == user){ //tirei o toString, se pa n da nada mas n testei
                 userCache = element
             }
-            
-        });
+        })
 
         return userCache
-    }
-    function removeCache(user){
-        const oldcache = JSON.parse(fs.readFileSync('cache.json', 'utf-8', (err, data) => {  // na real tem que ler de um array, mas dps faço isso
+    },
+    removeCache(user){
+        const oldcache = JSON.parse(fs.readFileSync(`${cacheJsonPath}`, 'utf-8', (err, data) => {  // na real tem que ler de um array, mas dps faço isso
             if (err) 
                 throw err;
-            
 
             return JSON.parse(data.toString());
         }))
@@ -73,17 +73,18 @@ const fs = require('fs')
         const newCache = []
 
         oldcache.forEach(element => {
-            if(element.user !== user){
+            if(element.userid !== user){
                 newCache.push(element)
             }
-        });
+        })
 
-        fs.writeFileSync('cache.json', JSON.stringify(newCache), (err) => {
+        fs.writeFileSync(`${cacheJsonPath}`, JSON.stringify(newCache), (err) => {
             if (err) {
                 throw err;
             }
-        });
+        })
     }
+}
 
 
 // setCache({

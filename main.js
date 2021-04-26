@@ -1,4 +1,4 @@
-import bot from './src/bot'
+const bot =  require('./src/bot')
 
 
 
