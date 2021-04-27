@@ -1,6 +1,6 @@
 const fs = require('fs')
 
-const cacheJsonPath = `${__dirname}\\cache.json`
+const cacheJsonPath = `${__dirname}\\message-cache.json`
 const historyJsonPath = `${__dirname}\\history.json`
 
 

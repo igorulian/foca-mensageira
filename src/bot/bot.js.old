@@ -1,9 +1,8 @@
 require('dotenv').config()
 const axios = require('axios')
-const Twitter = require('twitter');
 const Twitter2 = require('twitter-v2');
 var Twit = require('twit')
-const cache = require('./cache-controller')
+const cache = require('../cache-controller')
 
 
 const apiKey = process.env.API_KEY
@@ -12,15 +11,7 @@ const apiSecretKey = process.env.API_SECRET_KEY
 const acessTokenKey = process.env.ACCESS_TOKEN_KEY
 const acessTokenSecret = process.env.ACCESS_TOKEN_SECRET
 
-// const botID = '1385255336899235840'
-
-
-const client = new Twitter({
-    consumer_key: apiKey,
-    consumer_secret: apiSecretKey,
-    access_token_key: acessTokenKey,
-    access_token_secret: acessTokenSecret,
-});
+const botID = '1385255336899235840'
 
 
 var T = new Twit({
@@ -39,13 +30,30 @@ const clientv2 = new Twitter2({
 
 module.exports = {
     async start() {
-        while (true) {
-            const lastMessages = await getMessages()
-            const analyzedLastMessages = analyzeLastMessages(lastMessages)
+        // removeMessage('2940913690')
+        teste()
+        // while (true) {
+        //     // const lastMessages = await getMessages()
+        //     // analyzeLastMessages(lastMessages)
 
-            await sleep(60 * 1000)
-        }
+        //     // await sleep(60 * 1000)
+        // }
     }
+}
+
+function teste(){
+    //https://twitter.com/i/api/1.1/dm/conversation/1284132824967196673-1385255336899235840/delete.json
+    T.delete('1.1/dm/conversation/2940913690-1385255336899235840/delete.json', (err,tt,req) => {
+        if(err){
+            console.log(err)
+        }
+
+        console.log(tt)
+    })
+}
+
+async function hasRateLimites(){
+
 }
 
 
@@ -61,6 +69,10 @@ async function getMessages(){ //2940913690
         }
 
         twitteresp.events.forEach(element => {
+
+            if(element.message_create.sender_id === botID) return
+
+            console.log(element)
 
             const senderLastMessage = {
                 userid: element.message_create.sender_id,
@@ -172,19 +184,16 @@ async function analyzeLastMessages(lastMessages){
                 // enviar tipo.. 'OK! , agora irei te enviar um preview do tweet, caso esteja tudo certo digite 'sim' caso contrario digite 'não
                 
                 
-                sendMessage(message.userid, `Perfeito! Agora é só confirmar os dados!, caso esteja tudo correto digite "sim" caso contrário digite "não"
-                De: ${userCahe.anonymous ? 'Anônimo' : userCahe.userName} Para: ${userCahe.to}
-                ${message.text} `)
+                sendMessage(message.userid, `Perfeito! Agora é só confirmar os dados! 
+                                            Caso esteja tudo correto digite "sim" caso contrário digite "não":
+                                            De: ${userCahe.anonymous ? 'Anônimo' : userCahe.userName} Para: ${userCahe.to}
+                                            ${message.text} `)
 
                 break
 
             case 3:
 
                 let correct = false
-
-                if(!(text.toString().toLowerCase().includes('sim') || text.toString().toLowerCase().includes('não') || text.toString().toLowerCase().includes('nao'))){
-                    return
-                }
 
                 if(text.toString().toLowerCase().includes('sim')){
                     correct = true
@@ -197,10 +206,8 @@ async function analyzeLastMessages(lastMessages){
                      lembrando que pode enviar outra a qualquer momento, basta digitar "oi" e o processo iniciará novamente :)`)
 
                     twitar(`De: ${userCahe.anonymous ? 'Anônimo' : userCahe.username} | Para: ${userCahe.to}
-                    ${userCahe.text}`)
-                    // enviar msg falando que deu tudo certo!
+                                ${userCahe.text}`)
                 }else{
-                    // enviar msg que deu errado e que vai tentar dnv
                     sendMessage(message.userid, 'Putz, tudo bem! Vamos iniciar novamente, digite "oi" para inicarmos uma mensagem do zero!')
                 }
 
@@ -243,18 +250,18 @@ async function sendMessage(userid,txt){
     });
 }
 
-
 async function twitar(txt){
     console.log('TWITANDO ' + txt)
 }
 
-async function removeMessage(){ //https://twitter.com/i/api/1.1/dm/conversation/1284132824967196673-1385255336899235840/delete.json
-    client.delete('dm/conversation/1284132824967196673-1385255336899235840/delete.json', (err, response) => {
+async function removeMessage(messageid){ //https://twitter.com/i/api/1.1/dm/conversation/1284132824967196673-1385255336899235840/delete.json
+    T.delete(`/direct_messages/events/destroy?id=${messageid}`, (err, response, t) => {
         if(err){
             console.log(err)
             return
         }
         console.log(response)
+        // console.log(t)
     })
 }
 
