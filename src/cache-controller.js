@@ -1,6 +1,7 @@
 const fs = require('fs')
 
 const cacheJsonPath = `${__dirname}\\cache.json`
+const historyJsonPath = `${__dirname}\\history.json`
 
 
 module.exports = {
@@ -10,7 +11,7 @@ module.exports = {
             if (err) 
                 throw err;
             
-            return JSON.parse(data.toString());
+            return data.toString()
         }));
 
         let newCache = prevCache
@@ -32,6 +33,7 @@ module.exports = {
                 element.text = cacheParams.text ? cacheParams.text : element.text
                 element.anonymous = cacheParams.anonymous ? cacheParams.anonymous : element.anonymous
                 element.lastMessage = cacheParams.lastMessage ? cacheParams.lastMessage : element.lastMessage
+                element.username = cacheParams.username ? cacheParams.username : element.username
                 // se tiver mais paremetros add depois
             }
 
@@ -50,7 +52,7 @@ module.exports = {
             if (err) 
                 throw err;
 
-            return JSON.parse(data.toString());
+            return data.toString()
         }))
 
         let userCache = false
@@ -67,7 +69,7 @@ module.exports = {
             if (err) 
                 throw err;
 
-            return JSON.parse(data.toString());
+            return data.toString()
         }))
 
         const newCache = []
@@ -83,6 +85,24 @@ module.exports = {
                 throw err;
             }
         })
+    },
+    saveHistory(twite){
+        const prevHistory = JSON.parse(fs.readFileSync(`${historyJsonPath}`, 'utf-8', (err, data) => {  // na real tem que ler de um array, mas dps faço isso
+            if (err) 
+                throw err;
+            
+            return data.toString()
+        }));
+        
+        prevHistory.push(twite)
+
+
+        fs.writeFileSync(`${historyJsonPath}`, JSON.stringify(prevHistory), (err) => {
+            if (err) 
+                throw err;
+        })
+
+        console.log('Mensagem de ' + twite.username + ' salva com sucesso!')
     }
 }
 
