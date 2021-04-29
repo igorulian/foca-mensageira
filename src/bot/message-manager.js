@@ -9,15 +9,14 @@ const apiSecretKey = process.env.API_SECRET_KEY
 const acessTokenKey = process.env.ACCESS_TOKEN_KEY
 const acessTokenSecret = process.env.ACCESS_TOKEN_SECRET
 
-const botID = '1385255336899235840'
-
+const botID = '1385255336899235840' //BOT ID to ignore the messages
 
 var T = new Twit({
     consumer_key: apiKey,
     consumer_secret: apiSecretKey,
     access_token: acessTokenKey,
     access_token_secret: acessTokenSecret,
-  })
+})
 
 const clientv2 = new Twitter2({
     consumer_key: apiKey,
@@ -26,10 +25,23 @@ const clientv2 = new Twitter2({
     access_token_secret: acessTokenSecret,  
 })
 
+const msgSucess = 'Perfeito! \nSua mensagem foi contabilizado e logo será twitada! \nObrigado por usar os nossos serviços :)'
+const msgError = 'Não foi possivel ler sua mensagem corretamente. Para enviar uma mensagem envie no seguinte molde: \n \nAnônimo: sim/não\nPara: @pessoa\nMensagem: Mensagem que deseja enviar'
+const msgErrorTweetFit = 'Não foi possivel enviar sua mensagem pois ela é muito longa \n tente enviar novamente de uma mandeira mais abreviada'
+const msgErrorMessagePejorative = 'EEI! Nada de ofender os outros por aqui! \nSe quer ofender algúem fala na cara!'
+
+const pejorativeWords = ['feio', 'feia', 'chato', 'chata', 'talarica', 'talarico', 'puta', 'vagabundo', 'vagabunda']
+
 module.exports = {
     async start() {
-        const lastMessages = await getMessages()
-        analyzeLastMessages(lastMessages)
+        // removeMessage('276161494')
+        console.log('Message manager started')
+        while (true){
+            const lastMessages = await getMessages()
+            analyzeLastMessages(lastMessages)
+
+            await sleep(60 * 1000)
+        }
     }
 }
 
@@ -75,11 +87,6 @@ async function getMessages(){ //2940913690
 }
 
 
-async function getUsernameById(userid){
-    const data = await clientv2.get('users/' + userid)
-    return data.data.username
-}
-
 async function analyzeLastMessages(lastMessages){
 
     lastMessages.forEach(async (message) => {
@@ -90,41 +97,47 @@ async function analyzeLastMessages(lastMessages){
 
         try{
 
-            message.text = message.text.replace('\n', '')
+            let text = message.text.replace('\n', '')
             
-            let anonimo = ''
+            let anonymous = ''
             let to = ''
             let txt = ''
+            let from = ''
 
-            anonimo = message.text.split(':')[1]
-            anonimo = anonimo.toString().toLowerCase().replace('não', 'nao')
-            anonimo = anonimo.toString().includes('nao') ? false : anonimo
-            anonimo = anonimo.toString().includes('sim') ? true : anonimo
+            anonymous = getAnonymous(text)
+            to = getTo(text)
+            txt = getTxt(text)
+            from = await getUsernameById(message.userid)
 
-            to = message.text.split(':')[2]
-            to = to.toString().trim()
-            to = to.toString().split(' ')[0]
-            to = to.toString().includes('@') ? to : false
-
-            txt = message.text.split(':')[3]
-            txt = txt.toString().trim()
-
-            const mensagem = {
-                anonimo,
+            const tweet = {
+                fromId: message.userid,
+                anonymous,
+                from,
                 to,
-                txt
+                text: txt
             }
+            const hasAllFields = !(anonymous === '' || to === '' || txt === '' || from === '')
+            const fitOnTweet = checkFitOnTweet(tweet)
+            const ispejorative = checkIsPejorative(tweet)
 
-            if(anonimo === '' || to === '' || txt === ''){
-                sendMessage(message.userid, 'Não foi possivel ler sua mensagem corretamente, leia no tweet fixado como enviar uma mensagem e tente novamente :)')
-            }else{
-                sendMessage(message.userid, 'Perfeito! Sua mensagem foi contabilizado e logo será twitada! Obrigado por usar os nossos serviços :)')
+            if(!hasAllFields)
+                sendMessage(message.userid, msgError)
+            if(!fitOnTweet)
+                sendMessage(message.userid, msgErrorTweetFit)
+            if(ispejorative)
+                sendMessage(message.userid, msgErrorMessagePejorative)
+
+            
+            if(hasAllFields && fitOnTweet && !ispejorative){
+                addToTweetQueue(tweet)
+                sendMessage(message.userid, msgSucess)
             }
+            
 
-            console.log(mensagem)
+            console.log(tweet)
 
-        }catch{
-           sendMessage(message.userid, 'Não foi possivel ler sua mensagem corretamente, leia no tweet fixado como enviar uma mensagem e tente novamente :)')
+        }catch(err){
+           sendMessage(message.userid, msgError)
         }
 
         setCache({userid: message.userid, lastMessage: message.text})
@@ -132,8 +145,63 @@ async function analyzeLastMessages(lastMessages){
     });
 }
 
-async function sendMessage(userid,txt){
+function getAnonymous(text){
+    let anonymous = text.split(':')[1]
+    anonymous = anonymous.toString().toLowerCase().replace('não', 'nao')
+    anonymous = anonymous.toString().includes('nao') ? false : anonymous
+    anonymous = anonymous.toString().includes('sim') ? true : anonymous
+    return anonymous
+}
 
+function getTo(text){
+    let to = text.split(':')[2]
+    to = to.toString().trim()
+    to = to.toString().split(' ')[0]
+    to = to.toString().split('\n')[0]
+    to = to.toString().includes('@') ? to : false
+    return to
+}
+
+function getTxt(text){
+    let txt = text.split(':')[3]
+    txt = txt.toString().trim()
+    return txt
+}
+
+function checkFitOnTweet(tweet){
+    const tweetTxt = `${tweet.anonymous ? '' : 'De: ' + tweet.from} \nPara: ${tweet.to} \n${tweet.text}`
+
+    if(tweetTxt.length > 280 + 1)
+        return false
+    else
+        return true
+
+}
+
+async function getUsernameById(userid){
+    const data = await clientv2.get('users/' + userid)
+    return data.data.username
+}
+
+function checkIsPejorative(tweet){
+    const text = tweet.text
+
+    let hasPejorativeWords = false
+
+    pejorativeWords.forEach(word => {
+        if(text.toString().toLowerCase().includes(word)) {
+            hasPejorativeWords = true
+        }
+    });
+
+    return hasPejorativeWords
+}
+
+function addToTweetQueue(tweet){
+
+}
+
+async function sendMessage(userid,txt){
     const data = {
         event:{
             type: "message_create",
@@ -157,8 +225,8 @@ async function sendMessage(userid,txt){
 
 
 
-async function removeMessage(messageid){ //https://twitter.com/i/api/1.1/dm/conversation/1284132824967196673-1385255336899235840/delete.json
-    T.delete(`/direct_messages/events/destroy?id=${messageid}`, (err, response, t) => {
+async function removeMessage(userid){ //https://twitter.com/i/api/1.1/dm/conversation/1284132824967196673-1385255336899235840/delete.json
+    T.post(`i/api/1.1/dm/conversation/${userid}-1385255336899235840/delete.json`, (err, response, t) => {
         if(err){
             console.log(err)
             return
