@@ -1,7 +1,7 @@
 require('dotenv').config()
 const Twitter2 = require('twitter-v2');
 var Twit = require('twit')
-const { getCache, setCache, addToTweetCache} = require('../cache-controller');
+const { getCache, setCache, addToTweetQueue} = require('../cache-controller');
 
 
 const apiKey = process.env.API_KEY
@@ -38,6 +38,7 @@ const pejorativeWords = ['feio', 'feia', 'chato', 'chata', 'puta',
 
 module.exports = {
     async start() {
+        console.log('Messaga controller started')
         while (true){
             try{
                 const lastMessages = await getMessages()
@@ -139,10 +140,10 @@ async function analyzeLastMessages(lastMessages){
             if(hasAllFields && fitOnTweet && !ispejorative){
                 addToTweetQueue(tweet)
                 sendMessage(message.userid, msgSucess)
-            }
-            
 
-            console.log(tweet)
+                console.log(`New message from @${message.from}`)
+                console.log(tweet)
+            }
 
         }catch(err){
            sendMessage(message.userid, msgError)
@@ -205,9 +206,6 @@ function checkIsPejorative(tweet){
     return hasPejorativeWords
 }
 
-function addToTweetQueue(tweet){
-    addToTweetCache(tweet)
-}
 
 async function sendMessage(userid,txt){
     const data = {

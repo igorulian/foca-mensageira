@@ -102,32 +102,53 @@ module.exports = {
                 throw err;
         })
 
-        console.log('Mensagem de ' + tweet.username + ' salva com sucesso!')
+        console.log('Mensagem de ' + tweet.from + ' salva com sucesso!')
     },
-    addToTweetCache(tweet){
+    addToTweetQueue(tweet){
 
-        const prevCache = JSON.parse(fs.readFileSync(`${tweetJsonPath}`, 'utf-8', (err, data) => {  // na real tem que ler de um array, mas dps faço isso
+        const tweetQueue = JSON.parse(fs.readFileSync(`${tweetJsonPath}`, 'utf-8', (err, data) => {  // na real tem que ler de um array, mas dps faço isso
             if (err) 
                 throw err;
             
             return data.toString()
         }));
 
-        prevCache.push(tweet)
+        tweetQueue.push(tweet)
 
-        fs.writeFileSync(`${tweetJsonPath}`, JSON.stringify(prevCache), (err) => {
+        fs.writeFileSync(`${tweetJsonPath}`, JSON.stringify(tweetQueue), (err) => {
+            if (err) 
+                throw err;
+            
+        })
+    },
+    getTweetQueue(){
+        const tweetQueue = JSON.parse(fs.readFileSync(`${tweetJsonPath}`, 'utf-8', (err, data) => {  // na real tem que ler de um array, mas dps faço isso
+            if (err) 
+                throw err;
+            
+            return data.toString()
+        }));
+
+        return tweetQueue
+    },
+    removeTweetQueue(){
+        const tweetQueue = JSON.parse(fs.readFileSync(`${tweetJsonPath}`, 'utf-8', (err, data) => {  // na real tem que ler de um array, mas dps faço isso
+            if (err) 
+                throw err;
+            
+            return data.toString()
+        }));
+
+        const newTweetQueue = []
+
+        for(x = 1; x < tweetQueue.length; x++){
+            newTweetQueue.push(tweetQueue[x])
+        }
+        
+        fs.writeFileSync(`${tweetJsonPath}`, JSON.stringify(newTweetQueue), (err) => {
             if (err) 
                 throw err;
             
         })
     }
 }
-
-
-// setCache({
-//     "user": "igorulian",
-//     "level": 4,
-//     "from": "anao",
-//     "to": "grandao",
-//     "text": "ta frio ai em cima?"
-// })
