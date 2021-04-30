@@ -1,7 +1,7 @@
 require('dotenv').config()
 const Twitter2 = require('twitter-v2');
 var Twit = require('twit')
-const { getCache, setCache } = require('../cache-controller');
+const { getCache, setCache, addToTweetCache} = require('../cache-controller');
 
 
 const apiKey = process.env.API_KEY
@@ -11,7 +11,7 @@ const acessTokenSecret = process.env.ACCESS_TOKEN_SECRET
 
 const botID = '1385255336899235840' //BOT ID to ignore the messages
 
-var T = new Twit({
+const client = new Twit({
     consumer_key: apiKey,
     consumer_secret: apiSecretKey,
     access_token: acessTokenKey,
@@ -30,27 +30,34 @@ const msgError = 'Não foi possivel ler sua mensagem corretamente. Para enviar u
 const msgErrorTweetFit = 'Não foi possivel enviar sua mensagem pois ela é muito longa \n tente enviar novamente de uma mandeira mais abreviada'
 const msgErrorMessagePejorative = 'EEI! Nada de ofender os outros por aqui! \nSe quer ofender algúem fala na cara!'
 
-const pejorativeWords = ['feio', 'feia', 'chato', 'chata', 'talarica', 'talarico', 'puta', 'vagabundo', 'vagabunda']
+const pejorativeWords = ['feio', 'feia', 'chato', 'chata', 'puta', 
+'vagabundo', 'vagabunda', 'biscate', 'piranha', 'galinha', 'gordo', 
+'gorda', 'idiota', 'buceta', 'caralho', 'pinto', 'pau', 'mamada']
+
+
 
 module.exports = {
     async start() {
-        // removeMessage('276161494')
-        console.log('Message manager started')
         while (true){
-            const lastMessages = await getMessages()
-            analyzeLastMessages(lastMessages)
+            try{
+                const lastMessages = await getMessages()
+                analyzeLastMessages(lastMessages)
 
-            await sleep(60 * 1000)
+                await sleep(120 * 1000)
+                
+            }catch(err){
+                console.log(err)
+            }
         }
     }
 }
 
 
-async function getMessages(){ //2940913690
+async function getMessages(){
 
     const lastMessages = []
 
-    T.get('direct_messages/events/list.json?count=50' , (error, twitteresp, response) => {
+    client.get('direct_messages/events/list.json?count=50' , (error, twitteresp, response) => {
 
         if(error){
             console.log(error)
@@ -116,6 +123,7 @@ async function analyzeLastMessages(lastMessages){
                 to,
                 text: txt
             }
+
             const hasAllFields = !(anonymous === '' || to === '' || txt === '' || from === '')
             const fitOnTweet = checkFitOnTweet(tweet)
             const ispejorative = checkIsPejorative(tweet)
@@ -198,7 +206,7 @@ function checkIsPejorative(tweet){
 }
 
 function addToTweetQueue(tweet){
-
+    addToTweetCache(tweet)
 }
 
 async function sendMessage(userid,txt){
@@ -216,7 +224,7 @@ async function sendMessage(userid,txt){
         }
     }
 
-    T.post('direct_messages/events/new', data, (error,ttr,resp) => {
+    client.post('direct_messages/events/new', data, (error,ttr,resp) => {
         if (error) {
             console.log(error)
         }
@@ -226,13 +234,12 @@ async function sendMessage(userid,txt){
 
 
 async function removeMessage(userid){ //https://twitter.com/i/api/1.1/dm/conversation/1284132824967196673-1385255336899235840/delete.json
-    T.post(`i/api/1.1/dm/conversation/${userid}-1385255336899235840/delete.json`, (err, response, t) => {
+    client.post(`i/api/1.1/dm/conversation/${userid}-1385255336899235840/delete.json`, (err, response, t) => {
         if(err){
             console.log(err)
             return
         }
         console.log(response)
-        // console.log(t)
     })
 }
 

@@ -6,6 +6,6 @@ const tweetManager = require('./tweet-manager')
 module.exports = {
     start() {
         messageManager.start()
-        // tweetManager.start()
+        tweetManager.start()
     }
 }

@@ -2,11 +2,11 @@ const fs = require('fs')
 
 const cacheJsonPath = `${__dirname}\\message-cache.json`
 const historyJsonPath = `${__dirname}\\history.json`
+const tweetJsonPath = `${__dirname}\\tweet-cache.json`
 
 
 module.exports = {
     setCache(cacheParams){
-
          const prevCache = JSON.parse(fs.readFileSync(`${cacheJsonPath}`, 'utf-8', (err, data) => {  // na real tem que ler de um array, mas dps faço isso
             if (err) 
                 throw err;
@@ -86,7 +86,7 @@ module.exports = {
             }
         })
     },
-    saveHistory(twite){
+    saveHistory(tweet){
         const prevHistory = JSON.parse(fs.readFileSync(`${historyJsonPath}`, 'utf-8', (err, data) => {  // na real tem que ler de um array, mas dps faço isso
             if (err) 
                 throw err;
@@ -94,7 +94,7 @@ module.exports = {
             return data.toString()
         }));
         
-        prevHistory.push(twite)
+        prevHistory.push(tweet)
 
 
         fs.writeFileSync(`${historyJsonPath}`, JSON.stringify(prevHistory), (err) => {
@@ -102,7 +102,24 @@ module.exports = {
                 throw err;
         })
 
-        console.log('Mensagem de ' + twite.username + ' salva com sucesso!')
+        console.log('Mensagem de ' + tweet.username + ' salva com sucesso!')
+    },
+    addToTweetCache(tweet){
+
+        const prevCache = JSON.parse(fs.readFileSync(`${tweetJsonPath}`, 'utf-8', (err, data) => {  // na real tem que ler de um array, mas dps faço isso
+            if (err) 
+                throw err;
+            
+            return data.toString()
+        }));
+
+        prevCache.push(tweet)
+
+        fs.writeFileSync(`${tweetJsonPath}`, JSON.stringify(prevCache), (err) => {
+            if (err) 
+                throw err;
+            
+        })
     }
 }
 
