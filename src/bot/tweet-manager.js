@@ -17,7 +17,7 @@ const client = new Twit({
 
 module.exports = {
     async start(){
-        console.log('Tweet Controller iniciado')
+        console.log('✔️ Tweet Controller iniciado')
         while (true){
             try{
                 const nextTweet = findNextTweet()
@@ -37,14 +37,13 @@ module.exports = {
 
 function findNextTweet() {
     const tweetQueue = getTweetQueue()
-    console.log(tweetQueue)
     const nextTweet = tweetQueue[0]
     
     return nextTweet
 }
 
 async function tweet(tweet){
-    const tweetTxt = `${tweet.anonymous ? '' : 'De: @' + tweet.from.toString().toLowerCase()} \nPara: ${tweet.to} \n${tweet.text}`
+    const tweetTxt = `${tweet.anonymous ? '' : 'De: ' + tweet.from.toString().toLowerCase()} \nPara: ${tweet.to} \n${tweet.text}`
 
     const data = {
         status: tweetTxt

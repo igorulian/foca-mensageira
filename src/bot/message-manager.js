@@ -1,8 +1,8 @@
 require('dotenv').config()
 const Twitter2 = require('twitter-v2');
 var Twit = require('twit')
-const { getCache, setCache, addToTweetQueue} = require('../cache-controller');
-
+const { getCache, setCache, addToTweetQueue, removeCache} = require('../cache-controller');
+var request = require('request');
 
 const apiKey = process.env.API_KEY
 const apiSecretKey = process.env.API_SECRET_KEY
@@ -38,7 +38,7 @@ const pejorativeWords = ['feio', 'feia', 'chato', 'chata', 'puta',
 
 module.exports = {
     async start() {
-        console.log('Messaga controller started')
+        console.log('✔️ Messaga controller started')
         while (true){
             try{
                 const lastMessages = await getMessages()
@@ -68,6 +68,8 @@ async function getMessages(){
         twitteresp.events.forEach(element => {
 
             if(element.message_create.sender_id === botID) return
+
+            console.log(element)
 
             const senderLastMessage = {
                 userid: element.message_create.sender_id,
@@ -106,16 +108,11 @@ async function analyzeLastMessages(lastMessages){
         try{
 
             let text = message.text.replace('\n', '')
-            
-            let anonymous = ''
-            let to = ''
-            let txt = ''
-            let from = ''
 
-            anonymous = getAnonymous(text)
-            to = getTo(text)
-            txt = getTxt(text)
-            from = await getUsernameById(message.userid)
+            const anonymous = getAnonymous(text)
+            const to = getTo(text)
+            const txt = getTxt(text)
+            const from =  `@${await getUsernameById(message.userid)}` 
 
             const tweet = {
                 fromId: message.userid,
@@ -139,10 +136,13 @@ async function analyzeLastMessages(lastMessages){
             
             if(hasAllFields && fitOnTweet && !ispejorative){
                 addToTweetQueue(tweet)
-                sendMessage(message.userid, msgSucess)
+                await sendMessage(message.userid, msgSucess)
+                leaveConversation(message.userid)
+                removeCache(message.userid)
 
-                console.log(`New message from @${message.from}`)
+                console.log(`New message from @${tweet.from}`)
                 console.log(tweet)
+                return
             }
 
         }catch(err){
@@ -155,7 +155,8 @@ async function analyzeLastMessages(lastMessages){
 }
 
 function getAnonymous(text){
-    let anonymous = text.split(':')[1]
+    let anonymous = ''
+    anonymous = text.split(':')[1]
     anonymous = anonymous.toString().toLowerCase().replace('não', 'nao')
     anonymous = anonymous.toString().includes('nao') ? false : anonymous
     anonymous = anonymous.toString().includes('sim') ? true : anonymous
@@ -163,7 +164,8 @@ function getAnonymous(text){
 }
 
 function getTo(text){
-    let to = text.split(':')[2]
+    let to = ''
+    to = text.split(':')[2]
     to = to.toString().trim()
     to = to.toString().split(' ')[0]
     to = to.toString().split('\n')[0]
@@ -172,7 +174,8 @@ function getTo(text){
 }
 
 function getTxt(text){
-    let txt = text.split(':')[3]
+    let txt = ''
+    txt = text.split(':')[3]
     txt = txt.toString().trim()
     return txt
 }
@@ -229,15 +232,51 @@ async function sendMessage(userid,txt){
     });
 }
 
+function leaveConversation(id) {
 
+    var headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
+        'Accept': '*/*',
+        'Accept-Language': 'pt-BR,pt;q=0.8,en-US;q=0.5,en;q=0.3',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Referer': 'https://twitter.com/messages',
+        'x-twitter-auth-type': 'OAuth2Session',
+        'x-twitter-client-language': 'en',
+        'x-twitter-active-user': 'yes',
+        'x-csrf-token': '754ce10c9c9e2cbc1a0ca4d9e02c823ca499b62c9a45450f46c27c1303348a24da4cad33eaf82139a1b2d41e1405132dc8902f33ec5b68719448540355060b195dee777d1af1f4883ce45359b340da42',
+        'Origin': 'https://twitter.com',
+        'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
+        'Connection': 'keep-alive',
+        'Cookie': '_ga=GA1.2.368656014.1613186248; ads_prefs=HBISAAA=; kdt=ZFOJczgRMUMVPQxrStNCelZHDxg1oonJqtI1Na18; remember_checked_on=1; twid=u%3D1385255336899235840; auth_token=e610b399511619a4dcd0d40b6757363801868f57; night_mode=1; mbox=PC#0e5a29d325d547d7a7c986ffd00b8fa8.34_0#1683047964|session#07e21bbe16d0479684f2b9e61360d7c2#1619803693; dnt=1; auth_multi=2940913690:f1c399dad6b885ee144384a469f0d6537ff3dbb9; personalization_id=v1_2E9dK4nmK+3vFDAxRX2ZAw==; guest_id=v1%3A161911087742759822; ct0=754ce10c9c9e2cbc1a0ca4d9e02c823ca499b62c9a45450f46c27c1303348a24da4cad33eaf82139a1b2d41e1405132dc8902f33ec5b68719448540355060b195dee777d1af1f4883ce45359b340da42; des_opt_in=Y; cd_user_id=17904c418ff116-0de23d7941caa08-4c3f2c72-1fa400-17904c419007b2; external_referer=8e8t2xd8A2w%3D|0|ziZgIoZIK4nlMKUVLq9KcnBFms0d9TqBqrE%2FyjvSFlFJR45yIlYF%2Bw%3D%3D; _gid=GA1.2.2007011065.1620053201'
+    };
 
-async function removeMessage(userid){ //https://twitter.com/i/api/1.1/dm/conversation/1284132824967196673-1385255336899235840/delete.json
-    client.post(`i/api/1.1/dm/conversation/${userid}-1385255336899235840/delete.json`, (err, response, t) => {
-        if(err){
-            console.log(err)
-            return
+    var dataString = 'cards_platform=Web-12&include_cards=1&include_ext_alt_text=true&include_quote_count=true&include_reply_count=1&tweet_mode=extended&dm_users=false&include_groups=true&include_inbox_timelines=true&include_ext_media_color=true&supports_reactions=true&include_conversation_info=true';
+
+    var options = {
+        url: `https://twitter.com/i/api/1.1/dm/conversation/${id}-1385255336899235840/delete.json`,
+        method: 'POST',
+        headers: headers,
+        body: dataString
+    };
+
+    function callback(error, response, body) {
+        if(error) { console.log(error)}
+        if (!error && response.statusCode == 200) {
+            console.log(body);
         }
-        console.log(response)
+    }
+
+    request(options, callback);
+
+}
+
+async function getReqRemaing() { // faço isso dps
+    client.get('application/rate_limit_status', (err, ttr, req) => {
+        console.log(ttr.resources.direct_messages)
+        return {
+            list: '',
+            sendMessage: ''
+        }
     })
 }
 
@@ -245,7 +284,7 @@ async function removeMessage(userid){ //https://twitter.com/i/api/1.1/dm/convers
 // this is a SUPER gambirarra (if u dont know what it means, try to check on google)
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
-  }
+}
 
 
 
