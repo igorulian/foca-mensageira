@@ -30,8 +30,11 @@ const clientv2 = new Twitter2({
 
 const msgSucess = 'Perfeito! \nSua mensagem foi contabilizado e logo será twitada! \nObrigado por usar os nossos serviços :)'
 const msgError = 'Não foi possivel ler sua mensagem corretamente. Para enviar uma mensagem envie no seguinte molde: \n \nAnônimo: sim/não\nPara: @pessoa\nMensagem: Mensagem que deseja enviar'
-const msgErrorTweetFit = 'Não foi possivel enviar sua mensagem pois ela é muito longa \n tente enviar novamente de uma mandeira mais abreviada'
-const msgErrorMessagePejorative = 'EEI! Nada de ofender os outros por aqui! \nSe quer ofender algúem fala na cara!'
+const msgErrorTweetFit = 'Não foi possivel enviar sua mensagem pois ela é muito longa. \nTente enviar novamente de uma mandeira mais abreviada'
+const msgErrorMessagePejorative = 'EEI! Nada de ofender os outros por aqui! \nSe quer ofender alguém fala na cara!'
+const msgWaitingConfirmation = (tweettxt) => (`Ótimo! Agora confirme as informações. Caso esteja tudo correto digite "sim", caso contrário digite "não" \n \n ${tweettxt}`)
+const msgNotConfirmed = 'Putz, ok! Vamos começar tudo de novo! \nMe mande novamente qual a mensagem deseja enviar seguindo o molde!'
+const msgCantFindConfirmation = 'Não consegui identificar sua resposta, favor tentar enviar novamente.'
 
 const pejorativeWords = ['feio', 'feia', 'chato', 'chata', 'puta', 
 'vagabundo', 'vagabunda', 'biscate', 'piranha', 'galinha', 'gordo', 
@@ -43,7 +46,7 @@ module.exports = {
     async start() {
         console.log('✔️ Messaga controller started')
         while (true){
-            try{
+            try{            
                 const lastMessages = await getMessages()
                 analyzeLastMessages(lastMessages)
 
@@ -72,8 +75,6 @@ async function getMessages(){
 
             if(element.message_create.sender_id === botID) return
 
-            console.log(element)
-
             const senderLastMessage = {
                 userid: element.message_create.sender_id,
                 text: element.message_create.message_data.text
@@ -93,7 +94,7 @@ async function getMessages(){
 
     await sleep(2000)
 
-    console.log(lastMessages)
+    console.log(`Total de mensagens: ${lastMessages.length}`)
 
     return lastMessages
 
@@ -107,6 +108,28 @@ async function analyzeLastMessages(lastMessages){
         const userCahe = getCache(message.userid)
 
         if(userCahe && userCahe.lastMessage === message.text) return
+
+        if(userCahe && userCahe.progress === 1){
+            const text = message.text.toString().toLowerCase().replace('não', 'nao')
+
+            if(text.includes('sim')){
+                const tweet = userCahe.tweet
+                addToTweetQueue(tweet)
+                await sendMessage(message.userid, msgSucess)
+
+            }else if(text.includes('nao')){
+                await sendMessage(message.userid, msgNotConfirmed)
+
+            } else{
+                await sendMessage(message.userid, msgCantFindConfirmation)
+                setCache({userid: message.userid, lastMessage: message.text})
+                return
+            }
+            
+            leaveConversation(message.userid)
+            removeCache(message.userid)
+            return
+        }
 
         try{
 
@@ -138,12 +161,13 @@ async function analyzeLastMessages(lastMessages){
 
             
             if(hasAllFields && fitOnTweet && !ispejorative){
-                addToTweetQueue(tweet)
-                await sendMessage(message.userid, msgSucess)
-                leaveConversation(message.userid)
-                removeCache(message.userid)
 
-                console.log(`New message from @${tweet.from}`)
+                setCache({userid: message.userid, progress: 1, tweet, lastMessage: message.text})
+                
+                const tweetTxt = `${tweet.anonymous ? '' : 'De: ' + tweet.from} \nPara: ${tweet.to} \n${tweet.text}`
+                await sendMessage(message.userid, msgWaitingConfirmation(tweetTxt))
+
+                console.log(`New message from ${tweet.from}`)
                 console.log(tweet)
                 return
             }
@@ -152,8 +176,8 @@ async function analyzeLastMessages(lastMessages){
            sendMessage(message.userid, msgError)
         }
 
-        setCache({userid: message.userid, lastMessage: message.text})
-
+        // setCache({userid: message.userid, lastMessage: message.text})
+        leaveConversation(message.userid)
     });
 }
 
@@ -161,8 +185,13 @@ function getAnonymous(text){
     let anonymous = ''
     anonymous = text.split(':')[1]
     anonymous = anonymous.toString().toLowerCase().replace('não', 'nao')
-    anonymous = anonymous.toString().includes('nao') ? false : anonymous
-    anonymous = anonymous.toString().includes('sim') ? true : anonymous
+    if(anonymous.includes('nao'))
+        anonymous = false
+    else if (anonymous.includes('sim'))
+        anonymous = true
+    else
+        anonymous = ''
+    
     return anonymous
 }
 
@@ -248,6 +277,7 @@ function leaveConversation(id) {
         'x-twitter-active-user': 'yes',
         'x-csrf-token': `${leaveConversationCsrfToken}`,
         'Origin': 'https://twitter.com',
+        'authorization': `Bearer ${leaveConversationBearerToken}`,
         'Connection': 'keep-alive',
         'Cookie': '_ga=GA1.2.368656014.1613186248; ads_prefs=HBISAAA=; kdt=ZFOJczgRMUMVPQxrStNCelZHDxg1oonJqtI1Na18; remember_checked_on=1; twid=u%3D1385255336899235840; auth_token=e610b399511619a4dcd0d40b6757363801868f57; night_mode=1; mbox=PC#0e5a29d325d547d7a7c986ffd00b8fa8.34_0#1683047964|session#07e21bbe16d0479684f2b9e61360d7c2#1619803693; dnt=1; auth_multi=2940913690:f1c399dad6b885ee144384a469f0d6537ff3dbb9; personalization_id=v1_2E9dK4nmK+3vFDAxRX2ZAw==; guest_id=v1%3A161911087742759822; ct0=754ce10c9c9e2cbc1a0ca4d9e02c823ca499b62c9a45450f46c27c1303348a24da4cad33eaf82139a1b2d41e1405132dc8902f33ec5b68719448540355060b195dee777d1af1f4883ce45359b340da42; des_opt_in=Y; cd_user_id=17904c418ff116-0de23d7941caa08-4c3f2c72-1fa400-17904c419007b2; external_referer=8e8t2xd8A2w%3D|0|ziZgIoZIK4nlMKUVLq9KcnBFms0d9TqBqrE%2FyjvSFlFJR45yIlYF%2Bw%3D%3D; _gid=GA1.2.2007011065.1620053201'
     };
@@ -273,15 +303,16 @@ function leaveConversation(id) {
 }
 
 async function getReqRemaing() { // faço isso dps
-    client.get('application/rate_limit_status', (err, ttr, req) => {
+    const a = client.get('application/rate_limit_status', (err, ttr, req) => {
         console.log(ttr.resources.direct_messages)
         return {
             list: '',
             sendMessage: ''
         }
     })
-}
 
+    console.log(a)
+}
 
 // this is a SUPER gambirarra (if u dont know what it means, try to check on google)
 function sleep(ms) {

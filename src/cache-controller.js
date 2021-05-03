@@ -28,12 +28,13 @@ module.exports = {
 
             if(element.userid === cacheParams.userid){
                 element.userid = cacheParams.userid
-                element.level = cacheParams.level ? cacheParams.level : element.level
+                element.progress = cacheParams.progress ? cacheParams.progress : element.progress
                 element.to = cacheParams.to ? cacheParams.to : element.to
                 element.text = cacheParams.text ? cacheParams.text : element.text
                 element.anonymous = cacheParams.anonymous ? cacheParams.anonymous : element.anonymous
                 element.lastMessage = cacheParams.lastMessage ? cacheParams.lastMessage : element.lastMessage
                 element.username = cacheParams.username ? cacheParams.username : element.username
+                element.tweet = cacheParams.tweet ? cacheParams.tweet : element.tweet
                 // se tiver mais paremetros add depois
             }
 
