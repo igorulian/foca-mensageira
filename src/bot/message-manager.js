@@ -9,6 +9,9 @@ const apiSecretKey = process.env.API_SECRET_KEY
 const acessTokenKey = process.env.ACCESS_TOKEN_KEY
 const acessTokenSecret = process.env.ACCESS_TOKEN_SECRET
 
+const leaveConversationBearerToken = process.env.LEAVE_CONVERSATION_BEARER_TOKEN
+const leaveConversationCsrfToken = process.env.LEAVE_CONVERSATION_CSRF_TOKEN
+
 const botID = '1385255336899235840' //BOT ID to ignore the messages
 
 const client = new Twit({
@@ -243,9 +246,8 @@ function leaveConversation(id) {
         'x-twitter-auth-type': 'OAuth2Session',
         'x-twitter-client-language': 'en',
         'x-twitter-active-user': 'yes',
-        'x-csrf-token': '754ce10c9c9e2cbc1a0ca4d9e02c823ca499b62c9a45450f46c27c1303348a24da4cad33eaf82139a1b2d41e1405132dc8902f33ec5b68719448540355060b195dee777d1af1f4883ce45359b340da42',
+        'x-csrf-token': `${leaveConversationCsrfToken}`,
         'Origin': 'https://twitter.com',
-        'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
         'Connection': 'keep-alive',
         'Cookie': '_ga=GA1.2.368656014.1613186248; ads_prefs=HBISAAA=; kdt=ZFOJczgRMUMVPQxrStNCelZHDxg1oonJqtI1Na18; remember_checked_on=1; twid=u%3D1385255336899235840; auth_token=e610b399511619a4dcd0d40b6757363801868f57; night_mode=1; mbox=PC#0e5a29d325d547d7a7c986ffd00b8fa8.34_0#1683047964|session#07e21bbe16d0479684f2b9e61360d7c2#1619803693; dnt=1; auth_multi=2940913690:f1c399dad6b885ee144384a469f0d6537ff3dbb9; personalization_id=v1_2E9dK4nmK+3vFDAxRX2ZAw==; guest_id=v1%3A161911087742759822; ct0=754ce10c9c9e2cbc1a0ca4d9e02c823ca499b62c9a45450f46c27c1303348a24da4cad33eaf82139a1b2d41e1405132dc8902f33ec5b68719448540355060b195dee777d1af1f4883ce45359b340da42; des_opt_in=Y; cd_user_id=17904c418ff116-0de23d7941caa08-4c3f2c72-1fa400-17904c419007b2; external_referer=8e8t2xd8A2w%3D|0|ziZgIoZIK4nlMKUVLq9KcnBFms0d9TqBqrE%2FyjvSFlFJR45yIlYF%2Bw%3D%3D; _gid=GA1.2.2007011065.1620053201'
     };
