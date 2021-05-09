@@ -32,12 +32,12 @@ const msgSucess = 'Perfeito! \nSua mensagem foi contabilizado e logo será twita
 const msgError = 'Não foi possivel ler sua mensagem corretamente. Para enviar uma mensagem envie no seguinte molde: \n \nAnônimo: sim/não\nPara: @pessoa\nMensagem: Mensagem que deseja enviar'
 const msgErrorTweetFit = 'Não foi possivel enviar sua mensagem pois ela é muito longa. \nTente enviar novamente de uma mandeira mais abreviada'
 const msgErrorMessagePejorative = 'EEI! Nada de ofender os outros por aqui! \nSe quer ofender alguém fala na cara!'
-const msgWaitingConfirmation = (tweettxt) => (`Ótimo! Agora confirme as informações. Caso esteja tudo correto digite "sim", caso contrário digite "não" \n \n ${tweettxt}`)
+const msgWaitingConfirmation = tweettxt => (`Ótimo! Agora confirme as informações. Caso esteja tudo correto digite "sim", caso contrário digite "não". \n \n${tweettxt}`)
 const msgNotConfirmed = 'Putz, ok! Vamos começar tudo de novo! \nMe mande novamente qual a mensagem deseja enviar seguindo o molde!'
 const msgCantFindConfirmation = 'Não consegui identificar sua resposta, favor tentar enviar novamente.'
 
-const pejorativeWords = ['feio', 'feia', 'chato', 'chata', 'puta', 
-'vagabundo', 'vagabunda', 'biscate', 'piranha', 'galinha', 'gordo', 
+const pejorativeWords = ['feio', 'feia', 'chato', 'chata', 'puta',
+'vagabundo', 'vagabunda', 'biscate', 'piranha', 'galinha', 'gordo',
 'gorda', 'idiota', 'buceta', 'caralho', 'pinto', 'pau', 'mamada']
 
 
@@ -46,15 +46,18 @@ module.exports = {
     async start() {
         console.log('✔️ Messaga controller started')
         while (true){
-            try{            
-                const lastMessages = await getMessages()
-                analyzeLastMessages(lastMessages)
+            try{      
+                // const requestsRemaing = await getReqRemaing()
 
-                await sleep(120 * 1000)
+                const lastMessages = await getMessages()
+
+                analyzeLastMessages(lastMessages)
                 
             }catch(err){
                 console.log(err)
             }
+            
+            await sleep(70 * 1000)
         }
     }
 }
@@ -64,80 +67,49 @@ async function getMessages(){
 
     const lastMessages = []
 
-    client.get('direct_messages/events/list.json?count=50' , (error, twitteresp, response) => {
+    const messages = (await client.get('direct_messages/events/list.json?count=50')).data
 
-        if(error){
-            console.log(error)
-            return
+    await messages.events.forEach(element => {
+
+        if(element.message_create.sender_id === botID) return
+
+        const senderLastMessage = {
+            userid: element.message_create.sender_id,
+            text: element.message_create.message_data.text
         }
 
-        twitteresp.events.forEach(element => {
+        let alreadyHasUser = false
 
-            if(element.message_create.sender_id === botID) return
-
-            const senderLastMessage = {
-                userid: element.message_create.sender_id,
-                text: element.message_create.message_data.text
+        lastMessages.forEach(message => {
+            if(message.userid === senderLastMessage.userid){
+                alreadyHasUser = true
             }
+        });
 
-            let alreadyHasUser = false
-
-            lastMessages.forEach(message => {
-                if(message.userid === senderLastMessage.userid){
-                    alreadyHasUser = true
-                }
-            });
-
-            if(!alreadyHasUser){ lastMessages.push(senderLastMessage) }
-        })
+        if(!alreadyHasUser){ lastMessages.push(senderLastMessage) }
     })
 
-    await sleep(2000)
-
-    console.log(`Total de mensagens: ${lastMessages.length}`)
-
     return lastMessages
-
 }
 
 
 async function analyzeLastMessages(lastMessages){
 
     lastMessages.forEach(async (message) => {
-        
+        console.log(message)
         const userCahe = getCache(message.userid)
 
         if(userCahe && userCahe.lastMessage === message.text) return
 
-        if(userCahe && userCahe.progress === 1){
-            const text = message.text.toString().toLowerCase().replace('não', 'nao')
-
-            if(text.includes('sim')){
-                const tweet = userCahe.tweet
-                addToTweetQueue(tweet)
-                await sendMessage(message.userid, msgSucess)
-
-            }else if(text.includes('nao')){
-                await sendMessage(message.userid, msgNotConfirmed)
-
-            } else{
-                await sendMessage(message.userid, msgCantFindConfirmation)
-                setCache({userid: message.userid, lastMessage: message.text})
-                return
-            }
-            
-            leaveConversation(message.userid)
-            removeCache(message.userid)
-            return
-        }
+        if(await checkProgress(userCahe,message)) return
 
         try{
+            console.log('aqui')
+            const messageText = message.text
 
-            let text = message.text.replace('\n', '')
-
-            const anonymous = getAnonymous(text)
-            const to = getTo(text)
-            const txt = getTxt(text)
+            const anonymous = getAnonymous(messageText)
+            const to = getTo(messageText)
+            const text = getTxt(messageText)
             const from =  `@${await getUsernameById(message.userid)}` 
 
             const tweet = {
@@ -145,26 +117,28 @@ async function analyzeLastMessages(lastMessages){
                 anonymous,
                 from,
                 to,
-                text: txt
+                text
             }
 
-            const hasAllFields = !(anonymous === '' || to === '' || txt === '' || from === '')
+            console.log(tweet)
+
+            const hasAllFields = !(anonymous === '' || to === '' || text === '' || from === '')
             const fitOnTweet = checkFitOnTweet(tweet)
             const ispejorative = checkIsPejorative(tweet)
 
             if(!hasAllFields)
-                sendMessage(message.userid, msgError)
+                await sendMessage(message.userid, msgError)
             if(!fitOnTweet)
-                sendMessage(message.userid, msgErrorTweetFit)
+                await sendMessage(message.userid, msgErrorTweetFit)
             if(ispejorative)
-                sendMessage(message.userid, msgErrorMessagePejorative)
+                await sendMessage(message.userid, msgErrorMessagePejorative)
 
             
             if(hasAllFields && fitOnTweet && !ispejorative){
 
                 setCache({userid: message.userid, progress: 1, tweet, lastMessage: message.text})
                 
-                const tweetTxt = `${tweet.anonymous ? '' : 'De: ' + tweet.from} \nPara: ${tweet.to} \n${tweet.text}`
+                const tweetTxt = `${tweet.anonymous ? 'De: Anônimo' : 'De: ' + tweet.from} \nPara: ${tweet.to} \n${tweet.text}`
                 await sendMessage(message.userid, msgWaitingConfirmation(tweetTxt))
 
                 console.log(`New message from ${tweet.from}`)
@@ -173,7 +147,8 @@ async function analyzeLastMessages(lastMessages){
             }
 
         }catch(err){
-           sendMessage(message.userid, msgError)
+            await sendMessage(message.userid, msgError)
+           console.log(err + ' ERROO')
         }
 
         // setCache({userid: message.userid, lastMessage: message.text})
@@ -181,10 +156,41 @@ async function analyzeLastMessages(lastMessages){
     });
 }
 
+async function checkProgress(userCahe, message){
+    if(userCahe && userCahe.progress === 1){
+        const text = message.text.toString().toLowerCase().replace('não', 'nao')
+
+        if(text.includes('sim')){
+            const tweet = userCahe.tweet
+            addToTweetQueue(tweet)
+            await sendMessage(message.userid, msgSucess)
+
+        }else if(text.includes('nao')){
+            await sendMessage(message.userid, msgNotConfirmed)
+
+        } else{
+            await sendMessage(message.userid, msgCantFindConfirmation)
+            setCache({userid: message.userid, lastMessage: message.text})
+            return true
+        }
+        
+        leaveConversation(message.userid)
+        removeCache(message.userid)
+        return true
+    }else{
+        return false
+    }
+}
+
+
 function getAnonymous(text){
     let anonymous = ''
-    anonymous = text.split(':')[1]
-    anonymous = anonymous.toString().toLowerCase().replace('não', 'nao')
+    anonymous = text.split('\n')[0]
+    anonymous = anonymous.toString().toLowerCase()
+    anonymous = anonymous.replace('não', 'nao')
+    anonymous = anonymous.replace('anônimo', '')
+    anonymous = anonymous.replace('anonimo', '')
+    anonymous = anonymous.replace(':', '')
     if(anonymous.includes('nao'))
         anonymous = false
     else if (anonymous.includes('sim'))
@@ -195,27 +201,31 @@ function getAnonymous(text){
     return anonymous
 }
 
+
 function getTo(text){
     let to = ''
-    to = text.split(':')[2]
-    to = to.toString().trim()
-    to = to.toString().split(' ')[0]
-    to = to.toString().split('\n')[0]
-    to = to.toString().includes('@') ? to : false
+    to = text.split('\n')[1].toString().toLowerCase()
+    to = to.replace('para', '')
+    to = to.replace(':', '')
+    to = to.trim()
+    to = to.includes('@') ? to : false
     return to
 }
 
 function getTxt(text){
     let txt = ''
-    txt = text.split(':')[3]
-    txt = txt.toString().trim()
+    txt = text.split('\n')[2].toString().toLowerCase()
+    txt = txt.replace('mensagem', '')
+    txt = txt.replace(':', '')
+    txt = txt.trim()
+    txt = txt.charAt(0).toUpperCase() + txt.slice(1);
     return txt
 }
 
 function checkFitOnTweet(tweet){
     const tweetTxt = `${tweet.anonymous ? '' : 'De: ' + tweet.from} \nPara: ${tweet.to} \n${tweet.text}`
 
-    if(tweetTxt.length > 280 + 1)
+    if(tweetTxt.length > 281)
         return false
     else
         return true
@@ -303,15 +313,17 @@ function leaveConversation(id) {
 }
 
 async function getReqRemaing() { // faço isso dps
-    const a = client.get('application/rate_limit_status', (err, ttr, req) => {
-        console.log(ttr.resources.direct_messages)
-        return {
-            list: '',
-            sendMessage: ''
-        }
-    })
+    const reqRem = (await client.get('application/rate_limit_status')).data.resources.direct_messages
+
+    const a = {
+        list: reqRem['/direct_messages/events/list'],
+        send: reqRem['/direct_messages/sent']
+    }
 
     console.log(a)
+
+    return a
+        
 }
 
 // this is a SUPER gambirarra (if u dont know what it means, try to check on google)

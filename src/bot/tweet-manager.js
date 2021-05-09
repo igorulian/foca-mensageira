@@ -30,7 +30,7 @@ module.exports = {
 
             }catch(err){ console.log(err) }
 
-            await sleep(120 * 1000)
+            await sleep(60 * 1000)
         }
     }
 }
