@@ -28,13 +28,13 @@ const clientv2 = new Twitter2({
     access_token_secret: acessTokenSecret,  
 })
 
-const msgSucess = 'Perfeito! \nSua mensagem foi contabilizado e logo será twitada! \nObrigado por usar os nossos serviços :)'
+const msgSucess = 'Perfeito! \nSua mensagem foi contabilizado e logo será twitada! \nObrigado por usar os nossos serviços :) \nFique a vontade para enviar quantas mensagens desejar.'
 const msgError = 'Não foi possivel ler sua mensagem corretamente. Para enviar uma mensagem envie no seguinte molde: \n \nAnônimo: sim/não\nPara: @pessoa\nMensagem: Mensagem que deseja enviar'
 const msgErrorTweetFit = 'Não foi possivel enviar sua mensagem pois ela é muito longa. \nTente enviar novamente de uma mandeira mais abreviada'
-const msgErrorMessagePejorative = 'EEI! Nada de ofender os outros por aqui! \nSe quer ofender alguém fala na cara!'
+const msgErrorMessagePejorative = 'EEI! Nada de ofender os outros por aqui! \nSe quer ofender alguém fala na cara! \nManda outra coisa ai!'
 const msgWaitingConfirmation = tweettxt => (`Ótimo! Agora confirme as informações. Caso esteja tudo correto digite "sim", caso contrário digite "não". \n \n${tweettxt}`)
-const msgNotConfirmed = 'Putz, ok! Vamos começar tudo de novo! \nMe mande novamente qual a mensagem deseja enviar seguindo o molde!'
-const msgCantFindConfirmation = 'Não consegui identificar sua resposta, favor tentar enviar novamente.'
+const msgNotConfirmed = 'Putz, ok! Vamos começar tudo de novo! \nMe mande novamente qual a mensagem deseja (seguindo o molde que está no tweet fixado)'
+const msgCantFindConfirmation = 'Não consegui identificar sua resposta, tente enviar novamente!'
 
 const pejorativeWords = ['feio', 'feia', 'chato', 'chata', 'puta',
 'vagabundo', 'vagabunda', 'biscate', 'piranha', 'galinha', 'gordo',
@@ -57,7 +57,7 @@ module.exports = {
                 console.log(err)
             }
             
-            await sleep(70 * 1000)
+            await sleep(80 * 1000)
         }
     }
 }
@@ -96,7 +96,7 @@ async function getMessages(){
 async function analyzeLastMessages(lastMessages){
 
     lastMessages.forEach(async (message) => {
-        console.log(message)
+        // console.log(message)
         const userCahe = getCache(message.userid)
 
         if(userCahe && userCahe.lastMessage === message.text) return
@@ -104,7 +104,6 @@ async function analyzeLastMessages(lastMessages){
         if(await checkProgress(userCahe,message)) return
 
         try{
-            console.log('aqui')
             const messageText = message.text
 
             const anonymous = getAnonymous(messageText)
@@ -148,7 +147,7 @@ async function analyzeLastMessages(lastMessages){
 
         }catch(err){
             await sendMessage(message.userid, msgError)
-           console.log(err + ' ERROO')
+        //    console.log(err + ' ERROO')
         }
 
         // setCache({userid: message.userid, lastMessage: message.text})
@@ -223,7 +222,7 @@ function getTxt(text){
 }
 
 function checkFitOnTweet(tweet){
-    const tweetTxt = `${tweet.anonymous ? '' : 'De: ' + tweet.from} \nPara: ${tweet.to} \n${tweet.text}`
+    const tweetTxt = `${tweet.anonymous ? 'De: Anônimo' : 'De: ' + tweet.from} \nPara: ${tweet.to} \n\n${tweet.text}`
 
     if(tweetTxt.length > 281)
         return false
@@ -304,7 +303,7 @@ function leaveConversation(id) {
     function callback(error, response, body) {
         if(error) { console.log(error)}
         if (!error && response.statusCode == 200) {
-            console.log(body);
+            // console.log(body);
         }
     }
 

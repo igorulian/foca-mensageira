@@ -30,7 +30,7 @@ module.exports = {
 
             }catch(err){ console.log(err) }
 
-            await sleep(60 * 1000)
+            await sleep(80 * 1000)
         }
     }
 }
@@ -43,18 +43,18 @@ function findNextTweet() {
 }
 
 async function tweet(tweet){
-    const tweetTxt = `${tweet.anonymous ? '' : 'De: ' + tweet.from.toString().toLowerCase()} \nPara: ${tweet.to} \n${tweet.text}`
+    const tweetTxt = `${tweet.anonymous ? 'De: Anônimo' : 'De: ' + tweet.from.toString().toLowerCase() }\nPara: ${tweet.to} \n\n${tweet.text}`
 
     const data = {
         status: tweetTxt
     }
 
-    // client.post('statuses/update', data, (err,ttr,res) => {
-    //     if(err){ console.log(err); return}
-    //     console.log(ttr)
-    // })
+    client.post('statuses/update', data, (err,ttr,res) => {
+        if(err){ console.log(err); return}
+        console.log(ttr)
+    })
 
-    console.log('=====TWITANDO======')
+    console.log('=====TWITADO======')
     console.log('' + data.status)
     console.log('===================')
 
