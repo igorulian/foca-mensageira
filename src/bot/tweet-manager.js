@@ -51,7 +51,7 @@ async function tweet(tweet){
 
     client.post('statuses/update', data, (err,ttr,res) => {
         if(err){ console.log(err); return}
-        console.log(ttr)
+        // console.log(ttr)
     })
 
     console.log('=====TWITADO======')

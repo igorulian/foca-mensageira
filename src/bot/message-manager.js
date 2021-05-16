@@ -204,7 +204,7 @@ function getAnonymous(text){
 function getTo(text){
     let to = ''
     to = text.split('\n')[1].toString().toLowerCase()
-    to = to.replace('para', '')
+    to = to.replace('para:', '')
     to = to.replace(':', '')
     to = to.trim()
     to = to.includes('@') ? to : false
@@ -214,7 +214,7 @@ function getTo(text){
 function getTxt(text){
     let txt = ''
     txt = text.split('\n')[2].toString().toLowerCase()
-    txt = txt.replace('mensagem', '')
+    txt = txt.replace('mensagem:', '')
     txt = txt.replace(':', '')
     txt = txt.trim()
     txt = txt.charAt(0).toUpperCase() + txt.slice(1);
