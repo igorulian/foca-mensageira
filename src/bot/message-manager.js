@@ -207,6 +207,12 @@ function getTo(text){
     to = to.replace('para:', '')
     to = to.replace(':', '')
     to = to.trim()
+    if(to.includes(' ')){
+        to.split(' ').forEach(element => {
+            if(element.includes('@'))
+                to = element
+        });
+    }
     to = to.includes('@') ? to : false
     return to
 }
