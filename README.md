@@ -9,7 +9,7 @@
  <a href="https://ibb.co/S5P4d1t"><img src="https://i.ibb.co/0mcRFWC/1.jpg" alt="1" border="0"></a>
 
 # How it works
- The user sends in the DM in the bot the information needed for the message (anonymous, to and message).
+ The user sends in the DM in the bot the information needed for the message (Anonymous: yes/no, to: @user and message).
  
  If the message template is correct, the BOT responds with a confirmation message for the user to confirm the information.
  
